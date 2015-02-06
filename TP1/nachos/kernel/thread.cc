@@ -451,6 +451,9 @@ Thread::RestoreProcessorState()
 	//Restauration du registre de condition
 	g_machine->cc = (int8_t)thread_context.cc;
 	
+	// Restauration de la table de translation 
+	g_machine->mmu->translationTable = process->addrspace->translationTable;
+	
 	g_machine->interrupt->SetStatus(oldLevel);
 }
 #endif

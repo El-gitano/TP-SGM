@@ -164,7 +164,8 @@ AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
 	   pgdisk < divRoundUp(section_table[i].sh_size, g_cfg->PageSize) ;
 	   pgdisk++, pgmem ++)
 	{
-
+	
+#ifndef ETUDIANTS_TP
 	  /* Without demand paging */
 	  
 	  // Set up default values for the page table entry
@@ -211,7 +212,38 @@ AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
 	  translationTable->setBitValid(pgmem);
 	  
 	  /* End of code without demand paging */
+#endif
+#ifdef ETUDIANTS_TP
+
+	// Set up default values for the page table entry
+	translationTable->clearBitSwap(pgmem);
+	translationTable->setBitReadAllowed(pgmem);
+	
+	// Section contenant des données/code à récupérer depuis le disque (il faut faire pointer l'adresse disque sur la partie concernée de l'exécutable) 
+	if (section_table[i].sh_type != SHT_NOBITS){
+	
+		translationTable->setAddrDisk(pgmem, section_table[i].sh_offset);
 	}
+	else{
+	
+		translationTable->setAddrDisk(pgmem, -1);
+	}
+	
+	if (section_table[i].sh_flags & SHF_WRITE){
+	
+		translationTable->setBitWriteAllowed(pgmem);
+	}
+	else{
+	
+		translationTable->clearBitWriteAllowed(pgmem);
+	}
+	translationTable->clearBitIo(pgmem);
+
+	// Le bit valide est à faux car on a pas encore chargé la page en mémoire physique
+	translationTable->clearBitValid(pgmem);
+#endif
+	}
+
     }
   delete [] shnames;
 
@@ -283,6 +315,9 @@ int AddrSpace::StackAllocate(void)
 	(stackBasePage+numPages)*g_cfg->PageSize);
 
   for (int i = stackBasePage ; i < (stackBasePage + numPages) ; i++) {
+
+#ifndef ETUDIANTS_TP
+
     /* Without demand paging */
 
     // Allocate a new physical page for the stack
@@ -301,6 +336,17 @@ int AddrSpace::StackAllocate(void)
     translationTable->setBitWriteAllowed(i);
     translationTable->clearBitIo(i);
     /* End of code without demand paging */
+    
+#endif
+#ifdef ETUDIANTS_TP
+
+	translationTable->setAddrDisk(i,-1);
+    translationTable->setBitValid(i);
+    translationTable->clearBitSwap(i);
+    translationTable->setBitReadAllowed(i);
+    translationTable->setBitWriteAllowed(i);
+    translationTable->clearBitIo(i);
+#endif
     }
 
   int stackpointer = (stackBasePage+numPages)*g_cfg->PageSize - 4*sizeof(int);

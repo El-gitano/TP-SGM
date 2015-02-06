@@ -39,13 +39,21 @@ PageFaultManager::~PageFaultManager() {
 //        page mapped to something [code/data/bss/...])
 //	\return the exception (generally the NO_EXCEPTION constant)
 */  
+/*
+	Penser à gérer une adresse virtuelles invalides !!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
 ExceptionType PageFaultManager::PageFault(int virtualPage) 
 {
-  printf("**** Warning: page fault manager is not implemented yet\n");
+
+#ifndef ETUDIANTS_TP
+
+  	printf("**** Warning: page fault manager is not implemented yet\n");
     exit(-1);
     return ((ExceptionType)0);
+#endif
+#ifdef ETUDIANTS_TP
+	
+	
+	return (NO_EXCEPTION);
+#endif
 }
-
-
-
-
