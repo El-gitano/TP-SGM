@@ -1,0 +1,13 @@
+#include "syscall.h"
+
+int main (){
+	 char * s ="coucouc le monde";
+	n_printf("Debut programme emission");
+	n_printf("Chaine : %s",s );
+	if (TtySend(s)!=n_strlen(s)){
+		Prror("ERREUR: Envoie de la chaine de caratere");
+		Exit(1);
+	}
+	n_printf("Fin programme emission");
+	return 1;
+}

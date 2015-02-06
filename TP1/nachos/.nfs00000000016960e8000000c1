@@ -1,0 +1,42 @@
+##################################################
+# fichier de configuration de NachOS
+##################################################
+
+NumPhysPages      = 2000
+UserStackSize     = 4096
+MaxFileNameSize   = 256
+NumDirEntries     = 30
+NumPortLoc        = 32009
+NumPortDist       = 32010
+ProcessorFrequency = 100
+SectorSize        = 128
+PageSize          = 128
+MaxVirtPages      = 200000
+
+# String values
+###############
+# attention la copie peut etre tres lente
+# car le systeme transfert 10 octets par
+# 10 octets on peut changer la constante
+# transfersize dans fstest.cc
+
+TargetMachineName = blutch
+FileToCopy	  = test/hello /hello
+FileToCopy	  = test/sort /sort
+FileToCopy	  = test/halt /halt
+FileToCopy	  = test/shell /shell
+FileToCopy	  = test/matmult /matmult
+FileToCopy	  = test/testConsole /testConsole
+FileToCopy	  = test/prodcons /prodcons
+FileToCopy	  = test/3threads /3threads
+FileToCopy	  = test/testConditions /testConditions
+FileToCopy	  = test/testLock /testLock
+FileToCopy	  = test/testBarriere /testBarriere
+
+# Boolean values
+################
+UseACIA		 = None
+PrintStat        = 1
+FormatDisk       = 1
+ListDir          = 1
+PrintFileSyst    = 0
