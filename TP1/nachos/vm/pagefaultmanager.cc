@@ -40,7 +40,7 @@ PageFaultManager::~PageFaultManager() {
 //	\return the exception (generally the NO_EXCEPTION constant)
 */  
 /*
-	Penser à gérer une adresse virtuelles invalides !!!!!!!!!!!!!!!!!!!!!!!!!!
+	Penser à gérer l'écriture dans une page en lecture seule !!!!!!!!!!!!!!!!!!!!!!!!!!
 */
 ExceptionType PageFaultManager::PageFault(int virtualPage) 
 {
@@ -53,6 +53,47 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 #endif
 #ifdef ETUDIANTS_TP
 	
+	
+	// chargement de la page manquante
+	char tmpPage[g_cfg->PageSize];
+	int tmpAddr = process->addrspace->translationTable->getAddrDisk(virtualPage);
+	
+	// Page pas dans le swap
+	if (!process->addrspace->translationTable->getBitSwap(virtualPage)){
+	
+		// Page anonyme
+		if( tmpAddr ==-1){
+			
+			memset(tmpPage, 0, g_cfg->PageSize);
+		}
+	
+		// Page sur disque
+		else{
+		
+			// Problème I/O ?
+			if(g_current_thread->process->exec_file->ReadAt(tmpPage, g_cfg->PageSize, tmpAddr) != g_cfg->PageSize){
+			
+				DEBUG('m', (char*)"Erreur lors de la lecture de la page.\n");
+				return (PAGEFAULT_EXCEPTION);
+			}
+		}
+	}
+	// Page dans le swap
+	else {
+		g_swap_manager->GetPageSwap(tmpAddr,tmpPage);  
+	}
+		
+	// Recherche d'une page libre 
+	// Valeur de retour a vérifier, acces objet !
+	int addrPhys = AddPhysicalToVirtualMapping(process->addrspace,virtualPage);
+	
+	// Pas de retour d'erreur possible
+	memcpy(addrPhys,tmpPage, g_cfg->PageSize);
+	
+	// bit de verrouillage ?
+	process->addrspace->translationTable->setBitValid(virtualPage);
+	process->addrspace->translationTable->setPhysicalPage(virtualPage, addrPhys);
+	// vérifier redondance de AddPhysicalToVirtualMapping
 	
 	return (NO_EXCEPTION);
 #endif
