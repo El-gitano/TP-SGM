@@ -54,46 +54,58 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 #ifdef ETUDIANTS_TP
 	
 	
-	// chargement de la page manquante
-	char tmpPage[g_cfg->PageSize];
-	int tmpAddr = process->addrspace->translationTable->getAddrDisk(virtualPage);
+	/* Chargement à effectuer suite à un défaut de page */
+	
+	Process *process = g_current_thread->process;
+	AddrSpace *addrspace = process->addrspace;
+	TranslationTable *tableTrad = addrspace->translationTable;
+	
+	int taillePages = g_cfg->PageSize;
+	char tmpPage[taillePages];
+	int tmpAddr = tableTrad->getAddrDisk(virtualPage);
+	int addrPhys; // Adresse où on chargera la page en RAM
+	
+	// TODO Gérer le bit IO ?
 	
 	// Page pas dans le swap
-	if (!process->addrspace->translationTable->getBitSwap(virtualPage)){
+	if (!tableTrad->getBitSwap(virtualPage)){
 	
-		// Page anonyme
+		// Page anonyme 	=> Mise à 0 de la page temporaire
 		if( tmpAddr ==-1){
 			
-			memset(tmpPage, 0, g_cfg->PageSize);
+			memset(tmpPage, 0, taillePages);
 		}
 	
-		// Page sur disque
+		// Page sur disque 	=> Chargement depuis l'exécutable
 		else{
 		
 			// Problème I/O ?
-			if(g_current_thread->process->exec_file->ReadAt(tmpPage, g_cfg->PageSize, tmpAddr) != g_cfg->PageSize){
+			if(process->exec_file->ReadAt(tmpPage, taillePages, tmpAddr) != taillePages){
 			
-				DEBUG('m', (char*)"Erreur lors de la lecture de la page.\n");
+				DEBUG('m', (char*)"Erreur lors de la lecture dans l'exécutable.\n");
 				return (PAGEFAULT_EXCEPTION);
 			}
 		}
 	}
 	// Page dans le swap
 	else {
-		g_swap_manager->GetPageSwap(tmpAddr,tmpPage);  
-	}
 		
-	// Recherche d'une page libre 
-	// Valeur de retour a vérifier, acces objet !
-	int addrPhys = AddPhysicalToVirtualMapping(process->addrspace,virtualPage);
+		// Si addrDisk = -1 attendre ?
+		g_swap_manager->GetPageSwap(tmpAddr, tmpPage);  
+	}
 	
-	// Pas de retour d'erreur possible
-	memcpy(addrPhys,tmpPage, g_cfg->PageSize);
 	
-	// bit de verrouillage ?
-	process->addrspace->translationTable->setBitValid(virtualPage);
-	process->addrspace->translationTable->setPhysicalPage(virtualPage, addrPhys);
-	// vérifier redondance de AddPhysicalToVirtualMapping
+	// Récupération d'une page libre
+	addrPhys = g_physical_mem_manager->AddPhysicalToVirtualMapping(addrspace, virtualPage);
+	
+	// Pas de retour d'erreur possible avec memcpy
+	memcpy(addrPhys, tmpPage, taillePages);
+	
+	// Page physique dévérouillée
+	// Page virtuelle valide et située à addrPhys en RAM
+	g_physical_mem_manager->UnlockPage(addrPhys);
+	tableTrad->setBitValid(virtualPage);
+	tableTrad->setPhysicalPage(virtualPage, addrPhys);
 	
 	return (NO_EXCEPTION);
 #endif

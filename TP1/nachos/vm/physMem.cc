@@ -172,12 +172,48 @@ int PhysicalMemManager::FindFreePage() {
 //  \return A new free physical page number.
 */
 //-----------------------------------------------------------------
+#ifndef ETUDIANTS_TP
 int PhysicalMemManager::EvictPage() {
   printf("**** Warning: page replacement algorithm is not implemented yet\n");
     exit(-1);
     return (0);
 }
+#endif
+#ifdef ETUDIANTS_TP
+int PhysicalMemManager::EvictPage() {
 
+	int local_i_clock = -1, trouve = 0;
+	
+	// On parcourt l'ensemble des pages jusqu'à ce qu'on trouve une page libre
+	while(!trouve){
+	
+		local_i_clock = (local_i_clock+1)%(g_cfg->NumPhysPages);
+		
+		// Page réquisissionnable
+		if(!tpr[local_i_clock].locked && !tpr[local_i_clock].owner->GetBitU()){
+		
+			trouve = 1;
+		}
+		// Page indisponible ou référencéee récemment
+		else{
+		
+			tpr[local_i_clock].owner->SetBitU(0);
+		}
+	}
+	
+	i_lock = local_i_clock;
+		
+	//Traitement sur la page avant de la rendre (recopie sur disque en cas de modification)
+	if(tpr[local_i_clock].owner->getBitM()){
+	
+		tpr[local_i_clock].locked = true;
+		//Traitement de recopie sur disque
+		tpr[local_i_clock].locked = false;
+	}
+	
+	return local_i_clock;
+}
+#endif
 //-----------------------------------------------------------------
 // PhysicalMemManager::Print
 //

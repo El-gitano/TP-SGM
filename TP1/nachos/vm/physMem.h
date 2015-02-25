@@ -64,7 +64,7 @@ private:
 
   Listint free_page_list; //!< List of available (unused) real page numbers
 
-  int i_clock;          //!< Index for clock_algorithm
+  int i_clock;        //!< Index for clock_algorithm
 };
 
 #endif // __MEM_H
