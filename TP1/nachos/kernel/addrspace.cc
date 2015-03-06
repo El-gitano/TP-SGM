@@ -177,7 +177,7 @@ AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
 	  translationTable->clearBitIo(pgmem);
 
 	  // Get a page in physical memory
-	  translationTable->setPhysicalPage(pgmem,g_physical_mem_manager->AddPhysicalToVirtualMapping(this, pgmem));
+	  translationTable->setPhysicalPage(pgmem, g_physical_mem_manager->AddPhysicalToVirtualMapping(this, pgmem));
 
 	  // Check if the program fits in memory
 	  if (translationTable->getPhysicalPage(pgmem) == -1) {
@@ -222,7 +222,7 @@ AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
 	// Section contenant des données/code à récupérer depuis le disque (il faut faire pointer l'adresse disque sur la partie concernée de l'exécutable) 
 	if (section_table[i].sh_type != SHT_NOBITS){
 	
-		translationTable->setAddrDisk(pgmem, section_table[i].sh_offset);
+		translationTable->setAddrDisk(pgmem, section_table[i].sh_offset + pgdisk*g_cfg->PageSize);
 	}
 	else{
 	
@@ -340,16 +340,18 @@ int AddrSpace::StackAllocate(void)
 #endif
 #ifdef ETUDIANTS_TP
 
-	translationTable->setAddrDisk(i,-1);
-    translationTable->setBitValid(i);
+    translationTable->clearBitValid(i);
+    translationTable->setAddrDisk(i, -1);
     translationTable->clearBitSwap(i);
     translationTable->setBitReadAllowed(i);
     translationTable->setBitWriteAllowed(i);
     translationTable->clearBitIo(i);
+    
 #endif
     }
 
   int stackpointer = (stackBasePage+numPages)*g_cfg->PageSize - 4*sizeof(int);
+
   return stackpointer;
 }
 

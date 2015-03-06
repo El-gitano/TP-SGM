@@ -238,6 +238,7 @@ MMU::Translate(int virtAddr, int* physAddr, int size, bool writing)
     DEBUG('h', (char *)"Raising page fault exception for page number %i\n",
 	  vpn);
 
+	DEBUG('v', (char *)"Défaut de page à l'adresse %x\n", virtAddr);
     // call the page fault manager
     g_machine->RaiseException(PAGEFAULT_EXCEPTION, virtAddr);
 

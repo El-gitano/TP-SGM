@@ -182,33 +182,66 @@ int PhysicalMemManager::EvictPage() {
 #ifdef ETUDIANTS_TP
 int PhysicalMemManager::EvictPage() {
 
-	int local_i_clock = -1, trouve = 0;
+	//ASSERT(false);
+	
+	int local_i_clock = i_clock, nbPagesParcourues = 0;
+	bool trouve = false;
+	int pageVirtuelle, numSecteur;
+	tpr_c pageReelle;
+	TranslationTable *addrspace;
 	
 	// On parcourt l'ensemble des pages jusqu'à ce qu'on trouve une page libre
 	while(!trouve){
 	
 		local_i_clock = (local_i_clock+1)%(g_cfg->NumPhysPages);
+		nbPagesParcourues++;
 		
-		// Page réquisissionnable
-		if(!tpr[local_i_clock].locked && !tpr[local_i_clock].owner->GetBitU()){
+		pageReelle = tpr[local_i_clock];
+		pageVirtuelle = pageReelle.virtualPage;
+		addrspace = pageReelle.owner->translationTable;
 		
-			trouve = 1;
+		// On a parcouru toutes les pages physiques mais on a rien trouvé -> Mise en attente
+		if(nbPagesParcourues == g_cfg->NumPhysPages){
+	
+			i_clock = local_i_clock;
+			g_current_thread->Yield();
+			local_i_clock = (i_clock+1)%(g_cfg->NumPhysPages);
+			
+			nbPagesParcourues = 0;
 		}
-		// Page indisponible ou référencéee récemment
-		else{
 		
-			tpr[local_i_clock].owner->SetBitU(0);
-		}
+		// Page non lockée
+		if(!pageReelle.locked){
+		
+			// Page disponible
+			if(!addrspace->getBitU(pageVirtuelle)){
+		
+				trouve = true;
+			}
+		
+			// Page référencéee récemment (2ème chance)
+			else{
+		
+				addrspace->clearBitU(pageVirtuelle);
+			}
+		}	
 	}
 	
-	i_lock = local_i_clock;
-		
-	//Traitement sur la page avant de la rendre (recopie sur disque en cas de modification)
-	if(tpr[local_i_clock].owner->getBitM()){
+	i_clock = local_i_clock;
 	
-		tpr[local_i_clock].locked = true;
-		//Traitement de recopie sur disque
-		tpr[local_i_clock].locked = false;
+	pageReelle.locked=true; // Pour éviter la réquisition de cette page lors du traitement avec le swap
+	addrspace->clearBitValid(pageVirtuelle);
+	
+	// Traitement sur la page avant de la rendre (recopie dans le swap en cas de modification)
+	if(addrspace->getBitM(pageVirtuelle)){
+	
+		// ajuster le premier paramètres en testant le bit swap
+		DEBUG('v', (char*)"Adresse de recopie : %p\n", (char*)(&(g_machine->mainMemory[local_i_clock*g_cfg->PageSize])));
+		numSecteur = g_swap_manager->PutPageSwap(-1, (char*)(&(g_machine->mainMemory[local_i_clock*g_cfg->PageSize])));
+		DEBUG('v', (char*)"Numéro de secteur retourné : %i\n", numSecteur);
+		addrspace->setAddrDisk(pageVirtuelle, numSecteur);
+		addrspace->setBitSwap(pageVirtuelle);
+		DEBUG('v', (char*)"Page swappée, sortie...\n");
 	}
 	
 	return local_i_clock;

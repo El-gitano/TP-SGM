@@ -5,7 +5,7 @@
 #
 # To add generate a new program, just update the PROGRAMS target below
 
-PROGRAMS = emission reception
+PROGRAMS = emission reception hello shell 3threads
 
 all: $(PROGRAMS)
 

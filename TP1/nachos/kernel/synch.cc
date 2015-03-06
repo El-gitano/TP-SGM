@@ -85,8 +85,10 @@ void Semaphore::P() {
 	
 	if(value < 0){
 
+		DEBUG('s', (char *)"P() pour le thread à l'adresse %p\n", g_current_thread);
 		Thread *courant = g_current_thread;
 		queue->Append(courant);
+		DEBUG('s', (char *)"P() test queue %i\n", queue->IsEmpty());
 		courant->Sleep();
 	}
 	
@@ -119,11 +121,12 @@ Semaphore::V() {
 	IntStatus save = g_machine->interrupt->SetStatus(INTERRUPTS_OFF);
 	
 	value++;
-	
+	DEBUG('s', (char *)"V() test queue dans le thread %p : %i\n", g_current_thread, queue->IsEmpty());
 	//On relance le premier thread de la file d'attente
 	if(!queue->IsEmpty()){
 
 		Thread *temp = (Thread *)queue->Remove();
+		DEBUG('s', (char *)"V() pour le thread à l'adresse %p\n", temp);
 		g_scheduler->ReadyToRun(temp);
 	}
 	

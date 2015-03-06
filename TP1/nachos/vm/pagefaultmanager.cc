@@ -52,38 +52,52 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
     return ((ExceptionType)0);
 #endif
 #ifdef ETUDIANTS_TP
-	
-	
+
 	/* Chargement à effectuer suite à un défaut de page */
 	
-	Process *process = g_current_thread->process;
+	Process *process = g_current_thread->GetProcessOwner();
 	AddrSpace *addrspace = process->addrspace;
 	TranslationTable *tableTrad = addrspace->translationTable;
-	
-	int taillePages = g_cfg->PageSize;
+
+	int diskAddr = tableTrad->getAddrDisk(virtualPage), taillePages = g_cfg->PageSize;
 	char tmpPage[taillePages];
-	int tmpAddr = tableTrad->getAddrDisk(virtualPage);
 	int addrPhys; // Adresse où on chargera la page en RAM
 	
-	// TODO Gérer le bit IO ?
+	// Gestion du bit IO
+	if(tableTrad->getBitIo(virtualPage)){
+	
+		while(tableTrad->getBitIo(virtualPage)){
+	
+			g_current_thread->Yield();
+		}
+		
+		return (NO_EXCEPTION);
+	}
+	
+	tableTrad->setBitIo(virtualPage);
 	
 	// Page pas dans le swap
 	if (!tableTrad->getBitSwap(virtualPage)){
 	
 		// Page anonyme 	=> Mise à 0 de la page temporaire
-		if( tmpAddr ==-1){
+		if(diskAddr == -1){
 			
-			memset(tmpPage, 0, taillePages);
+			DEBUG('m', (char*)"Allocation et mise à 0 de %d octets d'une page anonyme.\n", taillePages);
+			memset(tmpPage, 0x0, taillePages);
 		}
 	
 		// Page sur disque 	=> Chargement depuis l'exécutable
 		else{
 		
 			// Problème I/O ?
-			if(process->exec_file->ReadAt(tmpPage, taillePages, tmpAddr) != taillePages){
+			if(process->exec_file->ReadAt(tmpPage, taillePages, diskAddr) != taillePages){
 			
 				DEBUG('m', (char*)"Erreur lors de la lecture dans l'exécutable.\n");
 				return (PAGEFAULT_EXCEPTION);
+			}
+			else{
+			
+				DEBUG('m', (char*)"Lecture d'une page de %d octets dans l'exécutable depuis l'adresse disque 0x%x\n", taillePages, diskAddr);
 			}
 		}
 	}
@@ -91,7 +105,7 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	else {
 		
 		// Si addrDisk = -1 attendre ?
-		g_swap_manager->GetPageSwap(tmpAddr, tmpPage);  
+		g_swap_manager->GetPageSwap(diskAddr, tmpPage);  
 	}
 	
 	
@@ -99,13 +113,14 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	addrPhys = g_physical_mem_manager->AddPhysicalToVirtualMapping(addrspace, virtualPage);
 	
 	// Pas de retour d'erreur possible avec memcpy
-	memcpy(addrPhys, tmpPage, taillePages);
-	
+	memcpy(&(g_machine->mainMemory[addrPhys*taillePages]), tmpPage, taillePages);
+
 	// Page physique dévérouillée
 	// Page virtuelle valide et située à addrPhys en RAM
-	g_physical_mem_manager->UnlockPage(addrPhys);
-	tableTrad->setBitValid(virtualPage);
 	tableTrad->setPhysicalPage(virtualPage, addrPhys);
+	tableTrad->setBitValid(virtualPage);
+	tableTrad->clearBitIo(virtualPage);
+	g_physical_mem_manager->UnlockPage(addrPhys);
 	
 	return (NO_EXCEPTION);
 #endif
