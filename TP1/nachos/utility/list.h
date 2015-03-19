@@ -247,7 +247,6 @@ class List {
       return NULL;
     
     ASSERT(first != first->next);
-    
     thing = first->item;
     if (first == last) {	// list had one item, now has none 
       first = NULL;

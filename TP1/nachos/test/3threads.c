@@ -11,7 +11,7 @@ void threadAttente(){
 		Exit(1);
 	}
 
-	n_printf("DÃblocage du thread\n");
+	n_printf("Deblocage du thread\n");
 	Exit(0);
 }
 
@@ -27,7 +27,7 @@ void threadDeblocage(){
 			Exit(1);
 		}
 	}
-	n_printf("DÃblocage des threads pour le rendez-vous\n");
+	n_printf("Deblocage des threads pour le rendez-vous\n");
 	Exit(0);
 }
 

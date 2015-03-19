@@ -63,6 +63,8 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	char tmpPage[taillePages];
 	int addrPhys; // Adresse où on chargera la page en RAM
 	
+	DEBUG('m', (char*)"Demande de la page virtuelle %i.\n", virtualPage);
+	
 	// Gestion du bit IO
 	if(tableTrad->getBitIo(virtualPage)){
 	
@@ -71,7 +73,7 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 			g_current_thread->Yield();
 		}
 		
-		return (NO_EXCEPTION);
+		return (NO_EXCEPTION); // Faux
 	}
 	
 	tableTrad->setBitIo(virtualPage);
@@ -103,24 +105,21 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	}
 	// Page dans le swap
 	else {
-		
-		// Si addrDisk = -1 attendre ?
+
 		g_swap_manager->GetPageSwap(diskAddr, tmpPage);  
 	}
 	
-	
-	// Récupération d'une page libre
+	// Récupération d'une page physique libre
 	addrPhys = g_physical_mem_manager->AddPhysicalToVirtualMapping(addrspace, virtualPage);
 	
 	// Pas de retour d'erreur possible avec memcpy
 	memcpy(&(g_machine->mainMemory[addrPhys*taillePages]), tmpPage, taillePages);
-
-	// Page physique dévérouillée
-	// Page virtuelle valide et située à addrPhys en RAM
+	
+	// Déverrouillage de la page physique + Page virtuelle valide et située en RAM à addrPhys + I/O à 0
 	tableTrad->setPhysicalPage(virtualPage, addrPhys);
 	tableTrad->setBitValid(virtualPage);
-	tableTrad->clearBitIo(virtualPage);
 	g_physical_mem_manager->UnlockPage(addrPhys);
+	tableTrad->clearBitIo(virtualPage);
 	
 	return (NO_EXCEPTION);
 #endif

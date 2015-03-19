@@ -329,7 +329,7 @@ int AddrSpace::StackAllocate(void)
     // Fill the page with zeroes
     memset(&(g_machine->mainMemory[translationTable->getPhysicalPage(i)*g_cfg->PageSize]),
 	   0x0,g_cfg->PageSize);
-    translationTable->setAddrDisk(i,-1);
+    translationTable->setAddrDisk(i, -1);
     translationTable->setBitValid(i);
     translationTable->clearBitSwap(i);
     translationTable->setBitReadAllowed(i);

@@ -119,7 +119,7 @@ int SwapManager::PutPageSwap(int num_sector,char *SwapPage) {
   if (num_sector >= 0) {
     DEBUG('v',(char *)"Writing swap page %i for \"%s\"\n",num_sector,
 	    g_current_thread->GetName());
-    swap_disk->WriteSector(num_sector,SwapPage);
+    	swap_disk->WriteSector(num_sector,SwapPage);
     return num_sector;
   }
   else {
@@ -131,7 +131,6 @@ int SwapManager::PutPageSwap(int num_sector,char *SwapPage) {
       DEBUG('v',(char *)"Writing swap page %i in sector %p for \"%s\"\n",newpage, SwapPage,
 	  g_current_thread->GetName());
       swap_disk->WriteSector(newpage,SwapPage);
-      DEBUG('v',(char *)"Écriture du secteur disque du swap OK\n");
       return newpage;
     }
   }		 

@@ -39,7 +39,7 @@ void DiskRequestDone()
 
 void DiskSwapRequestDone()
 {
-    g_disk_driver->RequestDone();
+    g_swap_disk_driver->RequestDone();
 }
 
 //----------------------------------------------------------------------
