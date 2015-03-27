@@ -63,7 +63,7 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	char tmpPage[taillePages];
 	int addrPhys; // Adresse où on chargera la page en RAM
 	
-	DEBUG('m', (char*)"Demande de la page virtuelle %i.\n", virtualPage);
+	DEBUG('m', (char*)"Demande de la page %i à l'adresse virtuelle %x.\n", virtualPage, virtualPage*taillePages);
 	
 	// Gestion du bit IO
 	if(tableTrad->getBitIo(virtualPage)){

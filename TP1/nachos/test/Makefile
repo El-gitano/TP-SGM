@@ -5,7 +5,7 @@
 #
 # To add generate a new program, just update the PROGRAMS target below
 
-PROGRAMS = emission reception hello shell 3threads test
+PROGRAMS = emission reception hello shell 3threads test memTest
 
 all: $(PROGRAMS)
 

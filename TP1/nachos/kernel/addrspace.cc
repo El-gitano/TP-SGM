@@ -310,9 +310,9 @@ int AddrSpace::StackAllocate(void)
   // Allocate virtual space for the new stack
   stackBasePage = this->Alloc(numPages);
   ASSERT (stackBasePage >= 0);
-  DEBUG('a', (char*)"Allocated virtual area [0x%x,0x%x[ for stack\n",
+  DEBUG('a', (char*)"Allocated virtual area [0x%x,0x%x[ for stack (size %d)\n",
 	stackBasePage*g_cfg->PageSize,
-	(stackBasePage+numPages)*g_cfg->PageSize);
+	(stackBasePage+numPages)*g_cfg->PageSize, numPages*g_cfg->PageSize);
 
   for (int i = stackBasePage ; i < (stackBasePage + numPages) ; i++) {
 
