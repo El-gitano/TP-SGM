@@ -1047,7 +1047,7 @@ void ExceptionHandler(ExceptionType exceptiontype, int vaddr)
 		
 			DEBUG('e', (char*)"MMAP: Error on MMAP.\n");
 			g_machine->WriteIntRegister(2, -1);
-			g_syscall_error->SetMsg((char*)"Fichier invalide ou taille invalide", InvalidParameter);
+			g_syscall_error->SetMsg((char*)"Fichier ou taille invalide", InvalidParameter);
 		}
 		
 		break;

@@ -60,7 +60,7 @@ int main (){
 	n_printf("Après tri\n");
 	afficher_tab(tab);
 	
-	Close(f);
+	//Close(f);
 	Exit(0);
 	return 0;
 }

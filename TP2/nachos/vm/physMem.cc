@@ -186,12 +186,12 @@ int PhysicalMemManager::EvictPage() {
 #ifdef ETUDIANTS_TP
 int PhysicalMemManager::EvictPage() {
 
-	//ASSERT(false);
-	
 	int local_i_clock = i_clock, nbPagesParcourues = 0, pageVirtuelle, numSecteur;
 	bool trouve = false;
 	tpr_c pageReelle;
 	TranslationTable *tableTrans;
+	OpenFile *fichierMap = NULL;
+	char *adressePage = NULL;
 	
 	// On parcourt l'ensemble des pages jusqu'à ce qu'on trouve une page libre
 	while(!trouve){
@@ -240,11 +240,18 @@ int PhysicalMemManager::EvictPage() {
 	// Traitement sur la page avant de la rendre (recopie dans le swap en cas de modification)
 	if(tableTrans->getBitM(pageVirtuelle)){
 		
+		adressePage = (char*)(&(g_machine->mainMemory[local_i_clock*g_cfg->PageSize]));
+		
 		// Cette page a déjà un secteur associé dans le swap
 		if(tableTrans->getBitSwap(pageVirtuelle)){
 		
 			DEBUG('v', (char*)"La page a déjà une adresse dans le swap (%i)\n", tableTrans->getAddrDisk(pageVirtuelle));
-			g_swap_manager->PutPageSwap(tableTrans->getAddrDisk(pageVirtuelle), (char*)(&(g_machine->mainMemory[local_i_clock*g_cfg->PageSize])));
+			g_swap_manager->PutPageSwap(tableTrans->getAddrDisk(pageVirtuelle), adressePage);
+		}
+		// Page correspondant à un fichier mappé
+		else if( (fichierMap = pageReelle.owner->findMappedFile(pageVirtuelle)) != NULL){
+		
+			fichierMap->WriteAt(adressePage, g_cfg->PageSize, tableTrans->getAddrDisk(pageVirtuelle));
 		}
 		else{
 		

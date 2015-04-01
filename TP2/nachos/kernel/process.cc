@@ -77,7 +77,8 @@ Process::Process(char *filename, int *err)
 Process::~Process()
 {
     ASSERT(numThreads==0);
-
+ 
+	// On s'il y a des fichier mappé
     // Delete the address space. Done for all processes, even the one created
     // for startup, for which there is no executable file attached
     delete addrspace;

@@ -61,7 +61,7 @@ static void SwapELFSectionHeader (Elf32_Shdr *shdr);
  //   \param err: error code 0 if OK, -1 otherwise 
  */
 //----------------------------------------------------------------------
-AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
+AddrSpace::AddrSpace(OpenFile *exec_file, Process *p, int *err)
 {
   Elf32_Ehdr elfHdr;      // Header du fichier exécutable
 
@@ -263,13 +263,28 @@ AddrSpace::AddrSpace(OpenFile * exec_file, Process *p, int *err)
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace()
 {
-  int i;
+  	int i, numPagePhys;
+	OpenFile *fichierMap = NULL;
+	char* addrMem = NULL;
 
   if (translationTable != NULL) {
     
     // For every virtual page
     for (i = 0 ; i <  freePageId ; i++) {
-      
+    
+#ifdef ETUDIANTS_TP  
+
+		// Ne marche pas si le fichierMap a été fermé auparavant avec Close()
+		if(translationTable->getBitM(i) && ((fichierMap = findMappedFile(i*g_cfg->PageSize)) != NULL) ){
+			
+			numPagePhys = translationTable->getPhysicalPage(i);
+			addrMem = (char*)(&(g_machine->mainMemory[numPagePhys*g_cfg->PageSize]));
+			
+			// Pas de check de l'erreur ici car la taille lue peut être inférieure à celle d'une page
+			fichierMap->WriteAt(addrMem, 40, translationTable->getAddrDisk(i)); //TODO
+		}
+#endif
+
       // If it is in physical memory, free the physical page
       if (translationTable->getBitValid(i))
 	g_physical_mem_manager->RemovePhysicalToVirtualMapping(translationTable->getPhysicalPage(i));
@@ -399,40 +414,42 @@ int AddrSpace::Mmap(OpenFile *f, int size)
 #endif
 #ifdef ETUDIANTS_TP
 	
-	int resAlloc, i;
+	int pageNum, nbPagesAlloues, i;
+	
+	nbPagesAlloues = divRoundUp(size, g_cfg->PageSize);
 	
 	if(nb_mapped_files == MAX_MAPPED_FILES){
 	
 		return -2;
 	}
 	
-	if( (resAlloc = Alloc(size)) == -1){
+	if( (pageNum = Alloc(nbPagesAlloues)) == -1){
 	
 		return -1;
 	}
 	
-	DEBUG('a', (char*)"Adresse d'allocation de mmap pour le fichier %s (adresse openfile %x) : %x (taille allouée %d)\n", f->GetName(), f, resAlloc, size);
+	DEBUG('a', (char*)"Premiere page d'allocation de mmap pour le fichier %s : %d (hexa : 0x%x) (taille allouee %d correspondant a %d pages)\n", f->GetName(), pageNum, pageNum, size, nbPagesAlloues);
 	
 	// Remplissage de l'entrée en rapport avec le fichier mappé
 	mapped_files[nb_mapped_files].size = size;
 	mapped_files[nb_mapped_files].file = f;
-	mapped_files[nb_mapped_files].first_address = resAlloc*g_cfg->PageSize;
+	mapped_files[nb_mapped_files].first_address = pageNum*g_cfg->PageSize;
 	
-	// Changement des droits
-	for (i = resAlloc ; i < (resAlloc + size) ; i++){
+	// Changement des droits des pages
+	for (i = pageNum ; i < (pageNum + nbPagesAlloues) ; i++){
 	
 		DEBUG('a', (char*)"Traitement sur la page %x\n", i);
 		translationTable->clearBitValid(i);
 		translationTable->clearBitSwap(i);
-		translationTable->setAddrDisk(i, ); // TODO À changer 
+		translationTable->clearBitIo(i);
 		translationTable->setBitReadAllowed(i);
 		translationTable->setBitWriteAllowed(i);
-		translationTable->clearBitIo(i);
+		translationTable->setAddrDisk(i, (i-pageNum)*g_cfg->PageSize); // Décalage dans le fichier
 	}
 	
-	nb_mapped_files++;
+	nb_mapped_files += 1;
 
-	return resAlloc*g_cfg->PageSize;
+	return pageNum*g_cfg->PageSize;
 	
 #endif
 }
@@ -451,13 +468,15 @@ OpenFile *AddrSpace::findMappedFile(int32_t addr) {
 #endif
 #ifdef ETUDIANTS_TP
 	
-	int i;
+	int i, lastAddress;
 	
 	for(i=0; i<nb_mapped_files; i++){
 	
-		if( (addr >= mapped_files[nb_mapped_files].first_address) && (addr <  (mapped_files[nb_mapped_files].first_address + mapped_files[nb_mapped_files].size)) ){
+		lastAddress = mapped_files[i].first_address + mapped_files[i].size;
 		
-			return mapped_files[nb_mapped_files].file;
+		if( (addr >= mapped_files[i].first_address) && (addr <  lastAddress)){
+		
+			return mapped_files[i].file;
 		}
 	}
 	

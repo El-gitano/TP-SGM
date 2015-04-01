@@ -105,8 +105,6 @@ public:
    * \return address of file descriptor if found, NULL otherwise
    */
   OpenFile *findMappedFile(int32_t addr);
-  
-  t_mapped_files mapped_files; // Passage en public pour gérer les fichiers mappés
 
 private:
   //* Code start address, found in the ELF file
@@ -132,6 +130,7 @@ private:
 
   /*! List of memory-mapped files */
   int nb_mapped_files;
+  t_mapped_files mapped_files;
 };
 
 #endif // ADDRSPACE_H

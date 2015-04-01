@@ -57,13 +57,13 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 	TranslationTable *tableTrad = addrspace->translationTable;
 	
 	OpenFile *fichierMap;
-	int offsetMap = -1, i;
+	int i, retourRead;
 
 	int diskAddr = tableTrad->getAddrDisk(virtualPage), taillePages = g_cfg->PageSize;
 	char tmpPage[taillePages];
 	int addrPhys; // Adresse où on chargera la page en RAM
 	
-	DEBUG('m', (char*)"Demande de la page %i à l'adresse virtuelle %x.\n", virtualPage, virtualPage*taillePages);
+	DEBUG('m', (char*)"Demande de la page %i (hexa 0x%x) à l'adresse virtuelle %x.\n", virtualPage, virtualPage, virtualPage*taillePages);
 	
 	// Gestion du bit IO
 	if(tableTrad->getBitIo(virtualPage)){
@@ -91,28 +91,15 @@ ExceptionType PageFaultManager::PageFault(int virtualPage)
 		// L'adresse est située dans un fichier mappé
 		else if( (fichierMap = addrspace->findMappedFile(virtualPage*g_cfg->PageSize)) != NULL){
 		
-			DEBUG('m', (char*)"L'adresse appartient à un fichier mappé.\n");
+			DEBUG('u', (char*)"L'adresse appartient à un fichier mappé.\n");
+			DEBUG('u', (char*)"Lecture avec un décalage de %d\n", tableTrad->getAddrDisk(virtualPage));
 			
-			// Recherche du fichier et calcul de l'offset
-			for(i = 0; offsetMap == -1 ; i++){
-		
-				if(addrspace->mapped_files[i].file == fichierMap){
-			
-					offsetMap = virtualPage - addrspace->mapped_files[i].first_address;
-				}
-			}
-		
-			// Lecture
-			if(process->exec_file->ReadAt(tmpPage, taillePages, offsetMap) != taillePages){
-			
-				DEBUG('m', (char*)"Erreur lors de la lecture dans le fichier mappé.\n");
-				return (PAGEFAULT_EXCEPTION);
-			}
+			// Pas de check de l'erreur ici car la taille lue peut être inférieure à celle d'une page
+			fichierMap->ReadAt(tmpPage, taillePages, tableTrad->getAddrDisk(virtualPage));
 		}
 		// Page sur disque 	=> Chargement depuis l'exécutable
 		else{
 		
-			// Problème I/O ?
 			if(process->exec_file->ReadAt(tmpPage, taillePages, diskAddr) != taillePages){
 			
 				DEBUG('m', (char*)"Erreur lors de la lecture dans l'exécutable.\n");
