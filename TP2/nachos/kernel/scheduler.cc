@@ -89,7 +89,7 @@ Scheduler::FindNextToRun ()
 void
 Scheduler::SwitchTo (Thread *nextThread)
 {
-	Thread *oldThread = g_current_thread;
+	Thread *oldThread = g_current_thread, *aDetruire;
 
     g_current_thread->CheckOverflow();	 // check if the old thread
 				 // had an undetected stack overflow
@@ -105,7 +105,7 @@ Scheduler::SwitchTo (Thread *nextThread)
     oldThread->SaveSimulatorState();
 
     // Do the context switch if the two threads are different
-    if (oldThread!=g_current_thread) {
+    if (oldThread != g_current_thread) {
     	// Restore the state of the operating system from its
     	// kernelContext structure such that it goes on executing when
     	// it was last interrupted
@@ -121,14 +121,19 @@ Scheduler::SwitchTo (Thread *nextThread)
     // point, we were still running on the old thread's stack!
 
 #ifdef ETUDIANTS_TP
+	if(g_thread_to_be_destroyed){
+		DEBUG('u', (char *)"Thread à détruire : %s et thread courant %s\n", g_thread_to_be_destroyed->GetName(), g_current_thread->GetName());
+	}
 	
 	//Delete thread if finished
 	if(g_thread_to_be_destroyed){
 	
-		g_alive->RemoveItem(g_thread_to_be_destroyed);
-		DEBUG('t', (char *)"Deleting thread %s\n", g_thread_to_be_destroyed->GetName());
-		delete g_thread_to_be_destroyed;
+		aDetruire = g_thread_to_be_destroyed;
 		g_thread_to_be_destroyed = NULL;
+		
+		DEBUG('t', (char *)"Deleting thread %s\n", aDetruire->GetName());
+		g_alive->RemoveItem(aDetruire);
+		delete aDetruire;	
 	}
 	
 #endif

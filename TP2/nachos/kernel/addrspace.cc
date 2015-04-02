@@ -263,27 +263,35 @@ AddrSpace::AddrSpace(OpenFile *exec_file, Process *p, int *err)
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace()
 {
-  	int i, numPagePhys;
+  	int i, j, numPageVirt, numPagePhys;
 	OpenFile *fichierMap = NULL;
 	char* addrMem = NULL;
 
   if (translationTable != NULL) {
+
+#ifdef ETUDIANTS_TP     
+    // Recopie des pages de fichier mappé qui sont modifiées
+    for(i=0; i<nb_mapped_files; i++){
+   
+		for(j=mapped_files[i].first_address; j<mapped_files[i].first_address+mapped_files[i].size; j+= g_cfg->PageSize){
+		
+			numPageVirt = j/g_cfg->PageSize;
+			
+			// Page valide, utilisée, à recopier dans un fichier mappé
+			if(translationTable->getBitValid(numPageVirt) && translationTable->getBitM(numPageVirt) && ( (fichierMap = findMappedFile(j)) != NULL) ){
+			
+				DEBUG('u', "Page virtuelle %d a recopier dans le fichier %s a l'offset %d\n", numPageVirt, fichierMap->GetName(), translationTable->getAddrDisk(numPageVirt));
+				numPagePhys = translationTable->getPhysicalPage(numPageVirt);
+				addrMem = (char*)(&(g_machine->mainMemory[numPagePhys*g_cfg->PageSize]));
+				
+				fichierMap->WriteAt(addrMem, g_cfg->PageSize, translationTable->getAddrDisk(numPageVirt));
+			}
+		}
+    }
+#endif
     
     // For every virtual page
     for (i = 0 ; i <  freePageId ; i++) {
-    
-#ifdef ETUDIANTS_TP  
-
-		// Ne marche pas si le fichierMap a été fermé auparavant avec Close()
-		if(translationTable->getBitM(i) && ((fichierMap = findMappedFile(i*g_cfg->PageSize)) != NULL) ){
-			
-			numPagePhys = translationTable->getPhysicalPage(i);
-			addrMem = (char*)(&(g_machine->mainMemory[numPagePhys*g_cfg->PageSize]));
-			
-			// Pas de check de l'erreur ici car la taille lue peut être inférieure à celle d'une page
-			fichierMap->WriteAt(addrMem, 40, translationTable->getAddrDisk(i)); //TODO
-		}
-#endif
 
       // If it is in physical memory, free the physical page
       if (translationTable->getBitValid(i))
@@ -428,7 +436,7 @@ int AddrSpace::Mmap(OpenFile *f, int size)
 		return -1;
 	}
 	
-	DEBUG('a', (char*)"Premiere page d'allocation de mmap pour le fichier %s : %d (hexa : 0x%x) (taille allouee %d correspondant a %d pages)\n", f->GetName(), pageNum, pageNum, size, nbPagesAlloues);
+	DEBUG('u', (char*)"Premiere page d'allocation de mmap pour le fichier %s : %d (hexa : 0x%x) (taille allouee %d correspondant a %d pages)\n", f->GetName(), pageNum, pageNum, size, nbPagesAlloues);
 	
 	// Remplissage de l'entrée en rapport avec le fichier mappé
 	mapped_files[nb_mapped_files].size = size;

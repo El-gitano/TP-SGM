@@ -251,6 +251,7 @@ int PhysicalMemManager::EvictPage() {
 		// Page correspondant à un fichier mappé
 		else if( (fichierMap = pageReelle.owner->findMappedFile(pageVirtuelle)) != NULL){
 		
+			DEBUG('u', (char*)"Recopier d'une page mappée dans le fichier %s (offset %d)\n", fichierMap->GetName(), tableTrans->getAddrDisk(pageVirtuelle));
 			fichierMap->WriteAt(adressePage, g_cfg->PageSize, tableTrans->getAddrDisk(pageVirtuelle));
 		}
 		else{
