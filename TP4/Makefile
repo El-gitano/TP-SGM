@@ -1,19 +1,22 @@
-LIBS= creerMatrice.c matrice-lib.c
-OBJ= creerMatrice.o matrice-lib.o
-HEADERS= matrice-lib.h
+SOURCES= creerMatrice.c matrice-lib.c matrice.c
+OBJ1= creerMatrice.o matrice-lib.o
+OBJ2= matrice.o
 FLAGS= -Wall -g
-EXE= creerMatrice
 
-all: compile link
+all: creerMatrice matrice
 
-link: compile
+creerMatrice: ${OBJ1} compile
 
-	gcc ${OBJ} -o ${EXE} ${FLAGS}
+	gcc ${OBJ1} -o creerMatrice ${FLAGS}
+
+matrice: ${OBJ2} compile
+
+	gcc ${OBJ2} -o matrice ${FLAGS}
 	
-compile: ${LIBS} ${HEADERS}
+compile: ${SOURCES}
 
-	gcc -c ${LIBS} ${FLAGS}
+	gcc -c ${SOURCES} ${FLAGS}
 	
 clean: ${OBJ} ${EXE}
 
-	rm -f ${OBJ} ${EXE}
+	rm -f ${OBJ1} ${OBJ2} creerMatrice matrice matriceFichier

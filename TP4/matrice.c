@@ -7,7 +7,7 @@
 #include <time.h>
 #include "commun.h"
 
-#define STEP 10
+#define STEPS 10
 
 int nbPageAccedes = 0;
 
@@ -34,7 +34,7 @@ int main(){
 	// Ouverture du fichier
 	if( (f=open("matriceFichier", O_RDONLY)) == -1){
 	
-		perror("Erreur dans l'ouverture du fichier");
+		perror("Erreur dans l'ouverture du fichier contenant la matrice");
 		exit(1);
 	}
 	
@@ -56,8 +56,8 @@ int main(){
 		exit(1);
 	}
 	
-	//Accès random
-	for(i=0; i<STEP; i++){
+	//Accès aléatoire
+	for(i=0; i<STEPS; i++){
 		
 		index = rand()%( (getpagesize()*NBPAGES)/sizeof(float)); // Spécifique à notre fichier matrice
 		printf("Matrice[%d] = %f\n", index, retourMap[index]);
@@ -73,6 +73,5 @@ int main(){
 	}
 	
 	close(f);
-	
 	return EXIT_SUCCESS;
 }
