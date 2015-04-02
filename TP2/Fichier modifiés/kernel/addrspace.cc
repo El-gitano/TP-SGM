@@ -296,6 +296,7 @@ AddrSpace::~AddrSpace()
       // If it is in physical memory, free the physical page
       if (translationTable->getBitValid(i))
 	g_physical_mem_manager->RemovePhysicalToVirtualMapping(translationTable->getPhysicalPage(i));
+	
       // If it is in the swap disk, free the corresponding disk sector
       if (translationTable->getBitSwap(i)) {
 	int addrDisk = translationTable->getAddrDisk(i);
