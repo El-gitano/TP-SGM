@@ -1,0 +1,18 @@
+LIBS= matrice.c
+OBJ= matrice.o
+FLAGS= -Wall -g
+EXE= matrice
+
+all: compile link
+
+link: compile
+
+	gcc ${OBJ} -o ${EXE} ${FLAGS}
+	
+compile: ${LIBS} ${HEADERS}
+
+	gcc -c ${LIBS} ${FLAGS}
+	
+clean: ${OBJ} ${EXE}
+
+	rm -f ${OBJ} ${EXE}
