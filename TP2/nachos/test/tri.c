@@ -60,7 +60,7 @@ int main (){
 	n_printf("Après tri\n");
 	afficher_tab(tab);
 	
-	//Close(f);
+	Close(f); // À enlever pour tester la recopie d'un fichier mappé
 	Exit(0);
 	return 0;
 }

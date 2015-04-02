@@ -33,7 +33,7 @@ int main(){
 		}
 	}
 	
-	printf("Fin de l'émetteur\n");
+	printf("Fin de l'envoi des messages\n");
 	
 	return EXIT_SUCCESS;
 }

@@ -5,33 +5,52 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
+#include "liste.h"
 
 #define N 5
 #define NB_ITER 3000
 
-struct sembuf prepaBuf(int numSem, char action);
+/* Prototypes */
+int opBuf(struct sembuf *buf, int numSem, char action);
+t_element *nextElem(t_element *current);
 
-struct sembuf prepaBuf(int numSem, char action){
+/* Retourne l'élément suivant de la liste chaînée */
+t_element *nextElem(t_element *current){
 
-	struct sembuf res;
-	 
-	res.sem_num = numSem;
-	res.sem_flg = 0;
+	if(current == NULL){
+	
+		return NULL;
+	}
+	
+	return current->suivant;
+}
+
+/* Permet de réaliser une opération sur un buffer de sémaphore */
+int opBuf(struct sembuf *buf, int numSem, char action){
+
+	// Erreur dans les paramètres
+	if(buf == NULL || numSem <0 || (action != 'P' && action != 'V')){
+	
+		return -1;
+	}
+	
+	buf->sem_num = numSem;
+	buf->sem_flg = 0;
 	
 	switch(action){
 	
 		case 'V':
 		
-			res.sem_op = 1;
+			buf->sem_op = 1;
 			break;
 			
 		case 'P':
 		
-			res.sem_op = -1;
+			buf->sem_op = -1;
 			break;
 	}
 	
-	return res;
+	return 0;
 }
 
 int main(){
@@ -41,7 +60,8 @@ int main(){
 	int semLibre = 0, semPlein = 1;
 	struct sembuf operationSem;
 	
-	int i, *tab;
+	int i;
+	t_element *liste, *courant;
 	
 	/* Création et init. des sémaphores
 		Position semLibre = 0
@@ -66,7 +86,7 @@ int main(){
 	}
 	
 	// Création du segment de mémoire partagé
-	if( (memId = shmget(IPC_PRIVATE, N*sizeof(int), 0660)) == -1){
+	if( (memId = shmget(IPC_PRIVATE, N*sizeof(t_element), 0660)) == -1){
 	
 		perror("Erreur lors de la création du segment de mémoire partagé");
 		exit(1);
@@ -82,16 +102,30 @@ int main(){
 	else if(retourFork == 0){
 	
 		// Attachement
-		if( (tab = (int *)shmat(memId, 0, SHM_RND)) == -1){
+		if( (liste = (t_element *)shmat(memId, 0, SHM_RND)) == -1){
 		
 			perror("PRODUCTEUR : Impossible d'attacher la mémoire au processus");
 			exit(1);
 		}
 		
+		// Initialisation de la liste chaînée
+		for(i=0; i<N; i++){
+		
+			liste[i].valeur = 0;
+			liste[i].suivant = &liste[(i+1)%N];
+		}
+	
+		courant = liste;
+		
 		for(i=0; i<NB_ITER; i++){
 		
 			// Acquérir semLibre
-			operationSem = prepaBuf(semLibre, 'P');
+			if(opBuf(&operationSem, semLibre, 'P') == -1){
+			
+				fprintf(stderr, "PRODUCTEUR : Erreur dans le passage de paramètre à opBuf\n");
+				exit(1);
+			}
+			
 			if(semop(semId, &operationSem, 1) == -1){
 			
 				perror("PRODUCTEUR : Erreur dans l'acquisition de semLibre");
@@ -99,10 +133,22 @@ int main(){
 			}
 			
 			// Ecrire de la valeur
-			tab[i%N] = i;
+			printf("Écriture de liste[%d] = %i\n", i%N, i);
+			courant->valeur = i;
+			
+			if( (courant = nextElem(courant)) == NULL){
+			
+				fprintf(stderr, "PRODUCTEUR : Erreur lors du changement d'élément\n");
+				exit(1);
+			}
 			
 			// Libération semPlein
-			operationSem = prepaBuf(semPlein, 'V');
+			if(opBuf(&operationSem, semPlein, 'V') == -1){
+			
+				fprintf(stderr, "PRODUCTEUR : Erreur dans le passage de paramètre à opBuf\n");
+				exit(1);
+			}
+			
 			if(semop(semId, &operationSem, 1) == -1){
 			
 				perror("PRODUCTEUR : Erreur dans la liberation de semPlein");
@@ -111,7 +157,7 @@ int main(){
 		}
 	
 		// Détachement
-		if(shmdt(tab) == -1){
+		if(shmdt(liste) == -1){
 		
 			perror("PRODUCTEUR : Impossible de détacher le segment mémoire");
 			exit(1);
@@ -121,17 +167,24 @@ int main(){
 	}
 
 	// Attachement
-	if( (tab = (int *)shmat(memId, 0, SHM_RND)) == -1){
+	if( (liste = (t_element *)shmat(memId, 0, SHM_RND)) == -1){
 		
 		perror("CONSOMMATEUR : Impossible d'attacher la mémoire au processus");
 		exit(1);
 	}
+	
+	courant = liste;
 		
 	// Consommateur
 	for(i=0; i<NB_ITER; i++){
 		
 		// Acquérir semPlein
-		operationSem = prepaBuf(semPlein, 'P');
+		if(opBuf(&operationSem, semPlein, 'P') == -1){
+		
+			fprintf(stderr, "CONSOMMATEUR : Erreur dans le passage de paramètre à opBuf\n");
+			exit(1);
+		}
+		
 		if(semop(semId, &operationSem, 1) == -1){
 			
 			perror("CONSOMMATEUR : Erreur dans l'acquisition de semPlein");
@@ -139,10 +192,21 @@ int main(){
 		}
 		
 		// Lecture de la valeur
-		printf("tab[%i] = %i\n", i%N, tab[i%N]);
+		printf("liste[%i] = %i\n", i%N, courant->valeur);
 		
+		if( (courant = nextElem(courant)) == NULL){
+		
+			fprintf(stderr, "CONSOMMATEUR : Erreur lors du changement d'élément\n");
+			exit(1);
+		}
+			
 		// Libération semLibre
-		operationSem = prepaBuf(semLibre, 'V');
+		if(opBuf(&operationSem, semLibre, 'V') == -1){
+		
+			fprintf(stderr, "CONSOMMATEUR : Erreur dans le passage de paramètre à opBuf\n");
+			exit(1);
+		}
+		
 		if(semop(semId, &operationSem, 1) == -1){
 			
 			perror("CONSOMMATEUR : Erreur dans liberation de semLibre");
@@ -151,7 +215,7 @@ int main(){
 	}
 	
 	// Détachement
-	if(shmdt(tab) == -1){
+	if(shmdt(liste) == -1){
 		
 		perror("CONSOMMATEUR : Impossible de détacher le segment mémoire");
 		exit(1);

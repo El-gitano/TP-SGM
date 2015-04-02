@@ -19,6 +19,8 @@ int main(){
 		exit(1);
 	}
 	
+	printf("Démmarage de la réception des messages\n");
+	
 	for(i=0; i<NB_ITER; i++){
 
 		if(msgrcv(idMessagerie, &message, sizeof(int), 0, 0) == -1){
@@ -29,6 +31,8 @@ int main(){
 		
 		printf("Réception de %i\n", message.valeur);
 	}
+	
+	printf("Fin de la réception des messages, suppression de la file de messages\n");
 	
 	// Nettoyage
 	if( msgctl(idMessagerie, IPC_RMID, 0) == -1){
